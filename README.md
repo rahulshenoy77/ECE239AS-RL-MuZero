@@ -1,53 +1,99 @@
-# muzero-pytorch
-Pytorch Implementation of MuZero : "[Mastering Atari , Go, Chess and Shogi by Planning with a Learned Model](https://arxiv.org/pdf/1911.08265.pdf)"  based on [pseudo-code](https://arxiv.org/src/1911.08265v1/anc/pseudocode.py) provided by the authors
+<p>
+<img src="https://img.shields.io/badge/licence-MIT-green">
+<img src="https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen">
+<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+</p>
 
-_Note: This implementation has just been tested on CartPole-v1 and would required modifications(`in config folder`) for other environments_
+# MuZero General
 
+A commented and [documented](https://github.com/werner-duvaud/muzero-general/wiki/MuZero-Documentation) implementation of MuZero based on the Google DeepMind [paper](https://arxiv.org/abs/1911.08265) and the associated [pseudocode](https://arxiv.org/src/1911.08265v2/anc/pseudocode.py).
+It is designed to be easily adaptable for every games or reinforcement learning environments (like [gym](https://github.com/openai/gym)). You only need to edit the [game file](https://github.com/werner-duvaud/muzero-general/tree/master/games) with the parameters and the game class. Please refer to the [documentation](https://github.com/werner-duvaud/muzero-general/wiki/MuZero-Documentation) and the [example](https://github.com/werner-duvaud/muzero-general/blob/master/games/cartpole.py).
+
+MuZero is a model based reinforcement learning algorithm, successor of AlphaZero. It learns to master games without knowing the rules. It only knows actions and then learn to play and master the game. It is at least more efficient than similar algorithms like [AlphaZero](https://arxiv.org/abs/1712.01815), [SimPLe](https://arxiv.org/abs/1903.00374) and [World Models](https://worldmodels.github.io). See [How it works](https://github.com/werner-duvaud/muzero-general/wiki/How-MuZero-works).
+
+## Features
+
+* [x] Residual Network and Fully connected network in [PyTorch](https://github.com/pytorch/pytorch)
+* [x] Multi-Threaded/Asynchronous mode with [Ray](https://github.com/ray-project/ray)
+* [x] CPU/GPU support
+* [x] TensorBoard real-time monitoring
+* [x] Model weights automatically saved at checkpoints
+* [x] Single and multiplayer mode
+* [x] Commented and [documented](https://github.com/werner-duvaud/muzero-general/wiki/MuZero-Documentation)
+* [x] Easily adaptable for new games
+* [x] [Examples](https://github.com/werner-duvaud/muzero-general/blob/master/games/cartpole.py) of board games, Gym and Atari games (See [list of implemented games](https://github.com/werner-duvaud/muzero-general#games-already-implemented))
+* [x] [Pretrained weights](https://github.com/werner-duvaud/muzero-general/tree/master/results) available
+* [ ] Windows support (Workaround: Use the [notebook](https://github.com/werner-duvaud/muzero-general/blob/master/notebook.ipynb) in Google Colab)
+
+### Further improvements
+These improvements are active research, they are personal ideas and go beyond MuZero paper. We are open to contributions and other ideas.
+
+* [ ] [Better hyperparameters tuning and improve stability](https://github.com/werner-duvaud/muzero-general/wiki/Hyperparameter-Optimization)
+* [x] [Continuous action space](https://github.com/werner-duvaud/muzero-general/tree/continuous)
+* [ ] End user tool to exploit the results
+* [ ] Support stochastic environments
+* [ ] Better integration with more than two player games
+* [ ] Latest RL tricks (Never Give Up,  Adaptive Exploration, ...)
+
+## Demo
+
+All performances are tracked and displayed in real time in TensorBoard :
+
+![cartpole training summary](https://github.com/werner-duvaud/muzero-general/blob/master/docs/cartpole-training-summary.png)
+
+Testing Lunar Lander :
+
+![lunarlander training preview](https://github.com/werner-duvaud/muzero-general/blob/master/docs/lunarlander-training-preview.png)
+
+## Games already implemented
+
+* Cartpole      (Tested with the fully connected network)
+* Lunar Lander  (Tested in deterministic mode with the fully connected network)
+* Gridworld     (Tested with the fully connected network)
+* Tic-tac-toe   (Tested with the fully connected network and the residual network)
+* Connect4      (Slightly tested with the residual network)
+* Gomoku
+* Twenty-One / Blackjack    (Tested with the residual network)
+* Atari Breakout
+
+Tests are done on Ubuntu with 16 GB RAM / Intel i7 / GTX 1050Ti Max-Q. We make sure to obtain a progression and a level which ensures that it has learned. But we do not systematically reach a human level. For certain environments, we notice a regression after a certain time. The proposed configurations are certainly not optimal and we do not focus for now on the optimization of hyperparameters. Any help is welcome.
+
+## Code structure
+
+![code structure](https://github.com/werner-duvaud/muzero-general/blob/master/docs/how-it-works-werner-duvaud.png)
+
+See also: [MuZero network summary](https://github.com/werner-duvaud/muzero-general/blob/master/docs/muzero-network-werner-duvaud.png)
+
+## Getting started
 ### Installation
+
 ```bash
-cd muzero-pytorch
+git clone https://github.com/werner-duvaud/muzero-general.git
+cd muzero-general
+
 pip install -r requirements.txt
 ```
 
-### Usage:
-* Train: ```python main.py --env CartPole-v1 --case classic_control --opr train --force ```
-* Test: ```python main.py --env CartPole-v1 --case classic_control --opr test```
-* Visualize results : ```tensorboard --logdir=<result_dir_path>```
+### Run
 
-|Required Arguments | Description|
-|:-------------|:-------------|
-| `--env`                          |Name of the environment|
-| `--case {atari,classic_control,box2d}` |It's used for switching between different domains(default: None)|
-| `--opr {train,test}`             |select the operation to be performed|
+```bash
+python muzero.py
+```
+To visualize the training results, run in a new terminal:
+```bash
+tensorboard --logdir ./results
+```
 
-|Optional Arguments | Description|
-|:-------------|:-------------|
-| `--value_loss_coeff`           |Scale for value loss (default: None)|
-| `--revisit_policy_search_rate` |Rate at which target policy is re-estimated (default:None)( only valid if ```--use_target_model``` is enabled)|
-| `--use_priority`               |Uses priority for  data sampling in replay buffer. Also, priority for new data is calculated based on loss (default: False)|
-| `--use_max_priority`           |Forces max priority assignment for new incoming data in replay buffer (only valid if ```--use_priority``` is enabled) (default: False) |
-| `--use_target_model`           |Use target model for bootstrap value estimation (default: False)|
-| `--result_dir`                 |Directory Path to store results (defaut: current working directory)|
-| `--no_cuda`                    |no cuda usage (default: False)|
-| `--debug`                      |If enables, logs additional values  (default:False)|
-| `--render`                     |Renders the environment (default: False)|
-| `--force`                      |Overrides past results (default: False)|
-| `--seed`                       |seed (default: 0)|
-| `--test_episodes`              |Evaluation episode count (default: 10)|
+## Authors
 
-```Note: default: None => Values are loaded from the corresponding config```
-
-## Training
-### CartPole-v1
-- Curves represents model evaluation for 5 episodes at 100 step training interval. 
-- Also, each curve is a  mean scores over 5 runs (seeds : [0,100,200,300,400])
-
-| |
-|:--|
-|![](static/imgs/cartpole_test_score.png)|
-|![](static/imgs/legend_cartpole.png)|
+* Werner Duvaud
+* Aurèle Hainaut
+* Paul Lenoir
+* [Contributors](https://github.com/werner-duvaud/muzero-general/graphs/contributors)
 
 
+## Getting involved
 
-
-
+* [GitHub Issues](https://github.com/werner-duvaud/muzero-general/issues): For reporting bugs.
+* [Pull Requests](https://github.com/werner-duvaud/muzero-general/pulls): For submitting code contributions.
+* [Discord server](https://discord.gg/GB2vwsF): For discussions about development or any general questions.
