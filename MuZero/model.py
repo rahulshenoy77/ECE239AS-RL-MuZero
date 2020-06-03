@@ -17,9 +17,11 @@ class NetworkOutput(typing.NamedTuple):
 
 
 class Network(ABC, nn.module):
-    def __init__(self):
+    def __init__(self, scaling=False, down_sample=False):
         super().__init__()
         self.steps = 0
+        self.scaling = scaling
+        self.down_sample = down_sample
 
     @abstractmethod
     def representation(self, image):
@@ -51,7 +53,19 @@ class Network(ABC, nn.module):
     def training_steps(self) -> int:
         return self.steps
 
+    # def scaling_transform(self, x, support_size, epsilon=1e-3):
+    #
+    #     x = torch.sign(x) * (torch.sqrt(torch.abs(x) + 1) - 1 + epsilon * x)
+    #
+    #     x = torch.clamp(x, -support_size, support_size)
+    #     p_low = x - x.floor()
+    #     p_high = 1 - p_low
+    #
+    #     logits_target = torch.zeros(x.shape[0], x.shape[1], 2*support_size+1)
+    #     ...
 
+
+# MuZero Network Structure with Fully Connected layers
 class FullyConnectedNetwork(Network):
     def __init__(self):
         super().__init__()
@@ -90,8 +104,34 @@ class ResBlock(nn.Module):
         return F.relu(out)
 
 
-class ResidualNetwork(Network):
+# The Down Sample part for Atari Observation to reduce spatial resolution.
+# Input size BatchSize * 128 * 96 * 96
+# Output size BatchSize * 256 * 6 * 6
+class DownSampleHead(nn.Module):
     def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(128, 128, 3, stride=2),
+            ResBlock(num_channels=128),
+            ResBlock(num_channels=128),
+            nn.Conv2d(128, 256, 3, stride=2),
+            ResBlock(),
+            ResBlock(),
+            ResBlock(),
+            nn.AvgPool2d(2),
+            ResBlock(),
+            ResBlock(),
+            ResBlock(),
+            nn.AvgPool2d(2)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+# MuZero Network Structure with Residual Blocks
+class ResidualNetwork(Network):
+    def __init__(self, num_channels, num_blocks):
         super().__init__()
         self.prediction_policy_network =
         self.prediction_value_network =
@@ -107,3 +147,4 @@ class ResidualNetwork(Network):
     def representation(self, image):
 
     def dynamics(self, hidden_state, action):
+
