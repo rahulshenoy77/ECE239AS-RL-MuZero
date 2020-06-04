@@ -1,7 +1,6 @@
-from ... import MuzeroConfig
-from ... import Game
-
+from .config import MuZeroConfig
 import numpy as np
+
 
 class ReplayBuffer(object):
 
@@ -21,7 +20,7 @@ class ReplayBuffer(object):
                 priorities = np.array([max_priority for i in range(len(game))])
             else:
                 # if not what to do, calculate or just assign an instant??
-                priorities =
+                priorities = np.array([1 for i in range(len(game))])
 
         if len(self.buffer) > self.window_size:
             # delete the oldest game history ???
@@ -48,7 +47,7 @@ class ReplayBuffer(object):
         # Sample game from buffer either uniformly or according to some priority.
         prob = np.array(self.game_priorities)
         prob /= np.sum(prob)
-        idx = np.random.choice(len(self.buffer), prob=prob)
+        idx = np.random.choice(len(self.buffer), p=prob)
 
         return idx
 
@@ -56,6 +55,6 @@ class ReplayBuffer(object):
         # Sample position from game either uniformly or according to some priority.
         priorities = self.pos_priorities[idx]
         prob = priorities / np.sum(priorities)
-        position = np.random.choice(len(priorities), prob=prob)
+        position = np.random.choice(len(priorities), p=prob)
 
         return position

@@ -1,7 +1,7 @@
 import typing
 from typing import Dict, List
-
-from *** import Action
+from .config import MuZeroConfig
+from .game_env import Action
 
 import torch.nn as nn
 import torch
@@ -20,6 +20,7 @@ class Network(ABC, nn.module):
     def __init__(self, scaling=False, down_sample=False):
         super().__init__()
         self.steps = 0
+        # whether to do scalar transform or down sample
         self.scaling = scaling
         self.down_sample = down_sample
 
@@ -67,13 +68,14 @@ class Network(ABC, nn.module):
 
 # MuZero Network Structure with Fully Connected layers
 class FullyConnectedNetwork(Network):
-    def __init__(self):
+    def __init__(self, config: MuZeroConfig):
         super().__init__()
-        self.prediction_policy_network =
-        self.prediction_value_network =
-        self.representation_network =
-        self.dynamics_state_network =
-        self.dynamics_reward_network =
+        self.config = config
+        self.prediction_policy_network = nn.Sequential()
+        self.prediction_value_network = nn.Sequential()
+        self.representation_network = nn.Sequential()
+        self.dynamics_state_network = nn.Sequential()
+        self.dynamics_reward_network = nn.Sequential()
 
     def prediction(self, hidden_state):
         policy_logits = self.prediction_policy_network(hidden_state)
@@ -81,8 +83,18 @@ class FullyConnectedNetwork(Network):
         return policy_logits, value
 
     def representation(self, image):
+        return self.representation_network(image)
 
     def dynamics(self, hidden_state, action):
+        one_hot = torch.zeros(size=(action.shape[0], self.config.action_space_size),
+                              dtype=torch.float32, device=action.device)
+        one_hot.scatter(1, action, 1.0)
+        x = torch.cat((hidden_state, one_hot), dim=1)
+
+        next_state = self.dynamics_state_network(x)
+        reward = self.dynamics_reward_network(x)
+
+        return next_state, reward
 
 
 class ResBlock(nn.Module):
@@ -130,21 +142,21 @@ class DownSampleHead(nn.Module):
 
 
 # MuZero Network Structure with Residual Blocks
-class ResidualNetwork(Network):
-    def __init__(self, num_channels, num_blocks):
-        super().__init__()
-        self.prediction_policy_network =
-        self.prediction_value_network =
-        self.representation_network =
-        self.dynamics_state_network =
-        self.dynamics_reward_network =
-
-    def prediction(self, hidden_state):
-        policy_logits = self.prediction_policy_network(hidden_state)
-        value = self.prediction_value_network(hidden_state)
-        return policy_logits, value
-
-    def representation(self, image):
-
-    def dynamics(self, hidden_state, action):
-
+# class ResidualNetwork(Network):
+#     def __init__(self, num_channels, num_blocks):
+#         super().__init__()
+#         self.prediction_policy_network =
+#         self.prediction_value_network =
+#         self.representation_network =
+#         self.dynamics_state_network =
+#         self.dynamics_reward_network =
+#
+#     def prediction(self, hidden_state):
+#         policy_logits = self.prediction_policy_network(hidden_state)
+#         value = self.prediction_value_network(hidden_state)
+#         return policy_logits, value
+#
+#     def representation(self, image):
+#
+#     def dynamics(self, hidden_state, action):
+#
