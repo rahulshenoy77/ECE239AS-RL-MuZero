@@ -1,7 +1,6 @@
 import typing
 from typing import Dict, List
-from .config import MuZeroConfig
-from .game_env import Action
+from game_env import Action
 
 import torch.nn as nn
 import torch
@@ -15,8 +14,22 @@ class NetworkOutput(typing.NamedTuple):
     policy_logits: Dict[Action, float]
     hidden_state: List[float]
 
+class UniformNetwork():
+    """policy -> uniform, value -> 0, reward -> 0"""
 
-class Network(ABC, nn.module):
+    def __init__(self, action_size):
+        self.action_size = action_size
+
+    def initial_inference(self, image):
+        return NetworkOutput(0, 0, {Action(i): 1 / self.action_size for i in range(self.action_size)}, None)
+
+    def recurrent_inference(self, hidden_state, action):
+        return NetworkOutput(0, 0, {Action(i): 1 / self.action_size for i in range(self.action_size)}, None)
+
+    def training_steps(self):
+        pass
+
+class Network(ABC, nn.Module):
     def __init__(self, scaling=False, down_sample=False):
         super().__init__()
         self.steps = 0
@@ -36,13 +49,13 @@ class Network(ABC, nn.module):
     def prediction(self, hidden_state):
         pass
 
-    def initial_inference(self, image) -> NetworkOutput:
+    def initial_inference(self, image):
         hidden_state = self.representation(image)
         policy_logits, value = self.prediction(hidden_state)
 
         return NetworkOutput(value, 0, policy_logits, hidden_state)
 
-    def recurrent_inference(self, hidden_state, action) -> NetworkOutput:
+    def recurrent_inference(self, hidden_state, action):
         next_state, reward = self.dynamics(hidden_state, action)
         policy_logits, value = self.prediction(next_state)
 
@@ -51,9 +64,13 @@ class Network(ABC, nn.module):
     def get_weights(self):
         return {k: v.cpu() for k, v in self.state_dict().items()}
 
+    def set_weights(self, weights):
+        self.load_state_dict(weights)
+
+    """
     def training_steps(self) -> int:
         return self.steps
-
+    """
     # def scaling_transform(self, x, support_size, epsilon=1e-3):
     #
     #     x = torch.sign(x) * (torch.sqrt(torch.abs(x) + 1) - 1 + epsilon * x)
@@ -64,7 +81,58 @@ class Network(ABC, nn.module):
     #
     #     logits_target = torch.zeros(x.shape[0], x.shape[1], 2*support_size+1)
     #     ...
+"""
+class BaseMuZeroNet(nn.Module):
+    def __init__(self, inverse_value_transform, inverse_reward_transform):
+        super(BaseMuZeroNet, self).__init__()
+        self.inverse_value_transform = inverse_value_transform
+        self.inverse_reward_transform = inverse_reward_transform
 
+    def prediction(self, state):
+        raise NotImplementedError
+
+    def representation(self, obs_history):
+        raise NotImplementedError
+
+    def dynamics(self, state, action):
+        raise NotImplementedError
+
+    def initial_inference(self, obs) -> NetworkOutput:
+        state = self.representation(obs)
+        actor_logit, value = self.prediction(state)
+
+        if not self.training:
+            value = self.inverse_value_transform(value)
+
+        return NetworkOutput(value, 0, actor_logit, state)
+
+    def recurrent_inference(self, hidden_state, action) -> NetworkOutput:
+        state, reward = self.dynamics(hidden_state, action)
+        actor_logit, value = self.prediction(state)
+
+        if not self.training:
+            value = self.inverse_value_transform(value)
+            reward = self.inverse_reward_transform(reward)
+
+        return NetworkOutput(value, reward, actor_logit, state)
+
+    def get_weights(self):
+        return {k: v.cpu() for k, v in self.state_dict().items()}
+
+    def set_weights(self, weights):
+        self.load_state_dict(weights)
+
+    def get_gradients(self):
+        grads = []
+        for p in self.parameters():
+            grad = None if p.grad is None else p.grad.data.cpu().numpy()
+            grads.append(grad)
+        return grads
+
+    def set_gradients(self, gradients):
+        for g, p in zip(gradients, self.parameters()):
+            if g is not None:
+                p.grad = torch.from_numpy(g)
 
 # MuZero Network Structure with Fully Connected layers
 class FullyConnectedNetwork(Network):
@@ -139,7 +207,7 @@ class DownSampleHead(nn.Module):
 
     def forward(self, x):
         return self.net(x)
-
+"""
 
 # MuZero Network Structure with Residual Blocks
 # class ResidualNetwork(Network):

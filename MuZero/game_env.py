@@ -2,7 +2,6 @@ from typing import List
 
 
 class Action(object):
-
     def __init__(self, index: int):
         self.index = index
 
@@ -15,90 +14,57 @@ class Action(object):
     def __gt__(self, other):
         return self.index > other.index
 
-
 class Player(object):
-    pass
+    """
+    A one player class.
+    This class is useless, it's here for legacy purpose and for potential adaptations for a two players MuZero.
+    """
 
-
-class Node(object):
-
-    def __init__(self, prior: float):
-        self.visit_count = 0
-        self.to_play = -1
-        self.prior = prior
-        self.value_sum = 0
-        self.children = {}
-        self.hidden_state = None
-        self.reward = 0
-
-    def expanded(self) -> bool:
-        return len(self.children) > 0
-
-    def value(self) -> float:
-        if self.visit_count == 0:
-            return 0
-        return self.value_sum / self.visit_count
-
+    def __eq__(self, other):
+        return True
 
 class ActionHistory(object):
-    """Simple history container used inside the search.
-
+    """
+    Simple history container used inside the search.
     Only used to keep track of the actions executed.
     """
 
-    def __init__(self, history: List[Action], action_space_size: int):
+    def __init__(self, history, action_space_size):
         self.history = list(history)
         self.action_space_size = action_space_size
 
     def clone(self):
         return ActionHistory(self.history, self.action_space_size)
 
-    def add_action(self, action: Action):
+    def add_action(self, action):
         self.history.append(action)
 
-    def last_action(self) -> Action:
+    def last_action(self):
         return self.history[-1]
 
-    def action_space(self) -> List[Action]:
+    def action_space(self):
         return [Action(i) for i in range(self.action_space_size)]
 
-    def to_play(self) -> Player:
+    def to_play(self):
         return Player()
-
-
-class Environment(object):
-    """The environment MuZero is interacting with."""
-
-    def step(self, action):
-        pass
-
 
 class Game(object):
     """A single episode of interaction with the environment."""
 
-    def __init__(self, action_space_size: int, discount: float):
-        self.environment = Environment()  # Game specific environment.
+    def __init__(self, action_space_size, discount):
         self.history = []
         self.rewards = []
         self.child_visits = []
         self.root_values = []
-        self.action_space_size = action_space_size
         self.discount = discount
+        self.action_space_size = action_space_size
 
-    def terminal(self) -> bool:
-        # Game specific termination rules.
-        pass
-
-    def legal_actions(self) -> List[Action]:
-        # Game specific calculation of legal actions.
-        return []
-
-    def apply(self, action: Action):
-        reward = self.environment.step(action)
+    def apply(self, action):
+        reward = self.step(action)
         self.rewards.append(reward)
         self.history.append(action)
 
-    def store_search_statistics(self, root: Node):
+    def store_search_statistics(self, root):
         sum_visits = sum(child.visit_count for child in root.children.values())
         action_space = (Action(index) for index in range(self.action_space_size))
         self.child_visits.append([
@@ -107,12 +73,7 @@ class Game(object):
         ])
         self.root_values.append(root.value())
 
-    def make_image(self, state_index: int):
-        # Game specific feature planes.
-        return []
-
-    def make_target(self, state_index: int, num_unroll_steps: int, td_steps: int,
-                    to_play: Player):
+    def make_target(self, state_index, num_unroll_steps, td_steps, to_play):
         # The value target is the discounted root value of the search tree N steps
         # into the future, plus the discounted sum of all rewards until then.
         targets = []
@@ -124,7 +85,7 @@ class Game(object):
                 value = 0
 
             for i, reward in enumerate(self.rewards[current_index:bootstrap_index]):
-                value += reward * self.discount**i  # pytype: disable=unsupported-operands
+                value += reward * self.discount ** i
 
             if current_index < len(self.root_values):
                 targets.append((value, self.rewards[current_index],
@@ -139,3 +100,23 @@ class Game(object):
 
     def action_history(self) -> ActionHistory:
         return ActionHistory(self.history, self.action_space_size)
+
+    def __len__(self):
+        return len(self.rewards)
+
+    # inheritence
+    def step(self, action):
+        # return reward
+        pass
+
+    def terminal(self):
+        # Game specific termination rules.
+        pass
+
+    def legal_actions(self):
+        # Game specific calculation of legal actions.
+        return []
+
+    def make_image(self, state_index):
+        # Game specific feature planes.
+        return []

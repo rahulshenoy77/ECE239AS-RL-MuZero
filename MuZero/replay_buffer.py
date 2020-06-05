@@ -1,10 +1,9 @@
-from .config import MuZeroConfig
 import numpy as np
 
 
 class ReplayBuffer(object):
 
-    def __init__(self, config: MuZeroConfig):
+    def __init__(self, config):
         self.window_size = config.window_size
         self.batch_size = config.batch_size
         self.buffer = []

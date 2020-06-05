@@ -1,35 +1,43 @@
 from typing import Optional
 import collections
-from .game_env import Game
+from model import UniformNetwork
 
 
 KnownBounds = collections.namedtuple('KnownBounds', ['min', 'max'])
 
-
 class MuZeroConfig(object):
     def __init__(self,
+                 game,
                  action_space_size: int,
                  max_moves: int,
                  discount: float,
                  dirichlet_alpha: float,
                  num_simulations: int,
+                 num_training_loop: int,
                  batch_size: int,
                  td_steps: int,
-                 num_actors: int,
+                 num_train_episodes,
+                 #num_actors: int,
                  lr_init: float,
                  lr_decay_steps: float,
                  max_priority: bool,
                  visit_softmax_temperature_fn,
+                 network_args,
+                 network,
                  known_bounds: Optional[KnownBounds] = None,
+                 results_path="",
                  ):
 
         ### Self-Play
+        self.game = game
         self.action_space_size = action_space_size
-        self.num_actors = num_actors
+        #self.num_actors = num_actors
+        self.num_train_episodes = num_train_episodes
 
         self.visit_softmax_temperature_fn = visit_softmax_temperature_fn
         self.max_moves = max_moves
         self.num_simulations = num_simulations
+        self.num_training_loop = num_training_loop
         self.discount = discount
 
         # Root prior exploration noise.
@@ -63,5 +71,28 @@ class MuZeroConfig(object):
         self.lr_decay_rate = 0.1
         self.lr_decay_steps = lr_decay_steps
 
+        self.results_path = results_path
+        self.network_args = network_args
+        self.network = network
+
     def new_game(self):
-        return Game(self.action_space_size, self.discount)
+        return self.game(self.action_space_size, self.discount)
+
+    def new_network(self):
+        #return self.network(**self.network_args)
+        return UniformNetwork(self.action_space_size)
+
+    def get_uniform_network(self):
+        return UniformNetwork(self.action_space_size)
+    '''
+    def visit_softmax_temperature_fn(self, num_moves, training_steps):
+        """
+        if training_steps < 0.5 * self.training_steps:
+            return 1.0
+        elif training_steps < 0.75 * self.training_steps:
+            return 0.5
+        else:
+            return 0.25
+        """
+        return 1.0
+    '''
