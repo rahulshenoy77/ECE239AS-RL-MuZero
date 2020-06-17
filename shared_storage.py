@@ -1,44 +1,19 @@
-import ray
-import torch
-import os
+class SharedStorage(object):
 
+    def __init__(self, network, uniform_network):
+        self._networks = {}
+        self.current_network = network
+        self.uniform_network = uniform_network
+        self.step_counter = 0
 
-@ray.remote
-class SharedStorage:
-    """
-    Class which run in a dedicated thread to store the network weights and some information.
-    """
+    def latest_network(self):
+        if self._networks:
+            return self._networks[max(self._networks.keys())]
+        else:
+            # policy -> uniform, value -> 0, reward -> 0
+            return self.uniform_network
 
-    def __init__(self, weights, game_name, config):
-        self.config = config
-        self.game_name = game_name
-        self.weights = weights
-        self.infos = {
-            "total_reward": 0,
-            "muzero_reward": 0,
-            "opponent_reward": 0,
-            "episode_length": 0,
-            "mean_value": 0,
-            "training_step": 0,
-            "lr": 0,
-            "total_loss": 0,
-            "value_loss": 0,
-            "reward_loss": 0,
-            "policy_loss": 0,
-        }
+    def save_network(self, step, network):
+        self._networks[step] = network
 
-    def get_weights(self):
-        return self.weights
-
-    def set_weights(self, weights, path=None):
-        self.weights = weights
-        if not path:
-            path = os.path.join(self.config.results_path, "model.weights")
-
-        torch.save(self.weights, path)
-
-    def get_infos(self):
-        return self.infos
-
-    def set_infos(self, key, value):
-        self.infos[key] = value
+    
