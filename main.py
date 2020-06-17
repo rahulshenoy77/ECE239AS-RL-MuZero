@@ -12,7 +12,6 @@ class MuZero:
         self.config = config
 
     def test(self):
-        
         model = self.config.new_network()
         model.set_weights(torch.load(self.config.result_path))
 
@@ -26,10 +25,10 @@ if __name__ == '__main__':
         "1": make_lunarlander_config,
         "2": make_frozenlake_config,
     }
-    
-    choice = input("choose a task (0: CartPole, 1: LunarLander, 2: Frozenlake): ")
-    alg = MuZero(task[choice]())
-    alg.test()
+    try:
+        choice = input("choose a task (0: CartPole, 1: LunarLander, 2: Frozenlake): ")
+        alg = MuZero(task[choice]())
+        alg.test()
 
-    #except:
-    #    print("invalid input")
+    except:
+        print("invalid input")
